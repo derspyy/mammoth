@@ -181,19 +181,15 @@ class FollowManager {
         if isLocalID {
             self.updateRelationshipForLocalAccount(account, currentUserFullAcct: currentUserFullAcct, currentClient: currentClient)
         } else {
-            // Get the account to be local, then do the check
-
             // Do the search, then the following
-            let request = Search.search(query: account.acct, resolve: true)
-            currentClient.run(request) { (statuses) in
-                if let error = statuses.error {
+            let request = SearchService.searchAccount(query: account.acct)
+            currentClient.run(request) { (response) in
+                if let error = response.error {
                     log.error("error searching for \(account.acct) : \(error)")
                 }
-                if let stat = (statuses.value) {
+                if let account = (response.value) {
                     DispatchQueue.main.async {
-                        if let account = stat.accounts.first {
-                            self.updateRelationshipForLocalAccount(account, currentUserFullAcct: currentUserFullAcct, currentClient: currentClient)
-                        }
+                        self.updateRelationshipForLocalAccount(account, currentUserFullAcct: currentUserFullAcct, currentClient: currentClient)
                     }
                 }
             }
@@ -224,18 +220,16 @@ class FollowManager {
         } else {
             // Do the search, then the following
             log.debug("M_FOLLOW", #function + " treated like a remote account")
-            let request = Search.search(query: account.acct, resolve: true)
+            let request = SearchService.searchAccount(query: account.acct)
             let currentClient = AccountsManager.shared.currentAccountClient
-            currentClient.run(request) { (statuses) in
-                if let error = statuses.error {
+            currentClient.run(request) { (response) in
+                if let error = response.error {
                     log.error("error searching for \(account.acct) : \(error)")
                     self.requestedFollows.remove(at: self.requestedFollows.firstIndex(of: account.fullAcct)!)
                 }
-                if let stat = (statuses.value) {
+                if let account = (response.value) {
                     DispatchQueue.main.async {
-                        if let account = stat.accounts.first {
-                            self.followLocalAccount(account, currentUserFullAcct: currentUserFullAcct)
-                        }
+                        self.followLocalAccount(account, currentUserFullAcct: currentUserFullAcct)
                     }
                 }
             }
@@ -251,7 +245,7 @@ class FollowManager {
                 log.error("Expected AccountsManager.shared.currentUser()?.fullAcct to be valid")
                 return nil
             }
-            
+
             self.requestedFollows.append(account.fullAcct)
             DispatchQueue.main.async {
                 self.notifyUpdatedStatus(account: account, currentUserFullAcct: currentUserFullAcct, status: .followRequested)
@@ -265,11 +259,9 @@ class FollowManager {
             } else {
                 // Do the search, then the following
                 log.debug("M_FOLLOW", #function + " treated like a remote account")
-                let result = try await SearchService.search(query: account.acct)
-                
-                if let account = result.accounts.first {
-                    return try await self.followLocalAccountAsync(account, currentUserFullAcct: currentUserFullAcct)
-                }
+                let account = try await SearchService.searchAccount(query: account.acct)
+                return try await self.followLocalAccountAsync(account, currentUserFullAcct: currentUserFullAcct)
+
                 
             }
         } catch let error {
@@ -352,18 +344,16 @@ class FollowManager {
         } else {
             // Do the search, then the unfollowing
             log.debug("M_FOLLOW", #function + " treated like a remote account")
-            let request = Search.search(query: account.acct, resolve: true)
+            let request = SearchService.searchAccount(query: account.acct)
             let currentClient = AccountsManager.shared.currentAccountClient
-            currentClient.run(request) { (statuses) in
-                if let error = statuses.error {
+            currentClient.run(request) { (response) in
+                if let error = response.error {
                     log.error("error searching for \(account.acct) : \(error)")
                     self.requestedUnfollows.remove(at: self.requestedUnfollows.firstIndex(of: account.fullAcct)!)
                 }
-                if let stat = (statuses.value) {
+                if let account = (response.value) {
                     DispatchQueue.main.async {
-                        if let account = stat.accounts.first {
-                            self.unfollowLocalAccount(account, currentUserFullAcct: currentUserFullAcct)
-                        }
+                        self.unfollowLocalAccount(account, currentUserFullAcct: currentUserFullAcct)
                     }
                 }
             }
@@ -533,16 +523,14 @@ class FollowManager {
             // Get the account to be local, then do the check
             
             // Do the search, then the following
-            let request = Search.search(query: account.acct, resolve: true)
-            currentClient.run(request) { (statuses) in
-                if let error = statuses.error {
+            let request = SearchService.searchAccount(query: account.acct)
+            currentClient.run(request) { (response) in
+                if let error = response.error {
                     log.error("error searching for \(account.acct) : \(error)")
                 }
-                if let stat = (statuses.value) {
+                if let stat = (response.value) {
                     DispatchQueue.main.async {
-                        if let account = stat.accounts.first {
-                            self.updateRelationshipForLocalAccount(account, currentUserFullAcct: currentUserFullAcct, currentClient: currentClient)
-                        }
+                        self.updateRelationshipForLocalAccount(account, currentUserFullAcct: currentUserFullAcct, currentClient: currentClient)
                     }
                 }
             }

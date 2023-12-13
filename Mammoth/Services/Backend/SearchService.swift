@@ -23,9 +23,9 @@ struct SearchService {
     }
     
     static func searchAccount(query: String) async throws -> Account? {
-        let request = Search.searchAccount(query: query)
+        let request = Accounts.lookup(acct: query) 
         let result = try await ClientService.runRequest(request: request)
-        return result.accounts.first
+        return result
     }
     
     static func searchPosts(query: String) async throws -> [Status] {

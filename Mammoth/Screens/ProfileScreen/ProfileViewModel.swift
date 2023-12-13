@@ -271,11 +271,13 @@ extension ProfileViewModel {
 extension ProfileViewModel {
     private func createRequest(forType: ViewTypes, user: UserCardModel, range: RequestRange = .default) async throws -> (pinned: [Status], statuses: [Status], cursorId: String?) {
         do {
+            // user id's fetched from the remote server are different than local :o
+            let remote_user = try AccountService.lookup(user)
             switch(type) {
             case .posts:
-                return try await AccountService.profilePosts(user: user, range: range, serverName: user.instanceName ?? user.account?.server)
+                return try await AccountService.profilePosts(user: remote_user, range: range, serverName: user.instanceName ?? user.account?.server)
             case .postsAndReplies:
-                return try await AccountService.profilePostsAndReplies(user: user, range: range, serverName: user.instanceName ?? user.account?.server)
+                return try await AccountService.profilePostsAndReplies(user: remote_user, range: range, serverName: user.instanceName ?? user.account?.server)
             }
         } catch {
             // Fallback to the user's instance to fetch the profile posts.
@@ -283,22 +285,16 @@ extension ProfileViewModel {
             // We need to query the content through the user's mastodon instance
             let currentServer = AccountsManager.shared.currentAccountClient.baseHost
             
-            var localUser = user
-            if user.instanceName != currentServer {
-                localUser = await self.reloadUser(forceLocal: true) ?? user
-                await MainActor.run { self.state = .loading }
-            }
-            
             switch(type) {
             case .posts:
-                let result = try await AccountService.profilePosts(user: localUser, range: range, serverName: currentServer)
+                let result = try await AccountService.profilePosts(user: user, range: range, serverName: currentServer)
                 await MainActor.run {
                     self.user?.instanceName = currentServer
                     self.isLoadingOriginals = false
                 }
                 return result
             case .postsAndReplies:
-                let result = try await AccountService.profilePostsAndReplies(user: localUser, range: range, serverName: currentServer)
+                let result = try await AccountService.profilePostsAndReplies(user: user, range: range, serverName: currentServer)
                 await MainActor.run {
                     self.user?.instanceName = currentServer
                     self.isLoadingOriginals = false
